@@ -16,6 +16,17 @@
 
 package com.securepreferences;
 
+import android.annotation.TargetApi;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.os.Build;
+import android.preference.PreferenceManager;
+import android.provider.Settings;
+import android.text.TextUtils;
+import android.util.Log;
+
+import com.securepreferences.util.Base64;
+
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
@@ -34,17 +45,6 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import android.annotation.TargetApi;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.Build;
-import android.preference.PreferenceManager;
-import android.provider.Settings;
-import android.text.TextUtils;
-import android.util.Log;
-
-import com.securepreferences.util.Base64;
-
 /**
  * Wrapper class for Android's {@link SharedPreferences} interface, which adds a
  * layer of encryption to the persistent storage and retrieval of sensitive
@@ -60,6 +60,7 @@ import com.securepreferences.util.Base64;
  *      href="http://www.codeproject.com/Articles/549119/Encryption-Wrapper-for-Android-SharedPreferences">CodeProject
  *      article</a>
  */
+@SuppressWarnings("JavaDoc")
 public class SecurePreferences implements SharedPreferences {
 
 	private static final int KEY_SIZE = 256;
@@ -84,11 +85,18 @@ public class SecurePreferences implements SharedPreferences {
 	 * @param context
 	 *            the caller's context
 	 */
-	public SecurePreferences(Context context) {
+    public SecurePreferences(Context context)
+    {
+        this(context, null);
+    }
+
+	public SecurePreferences(Context context, SharedPreferences preferences) {
 		// Proxy design pattern
 		if (SecurePreferences.sFile == null) {
-			SecurePreferences.sFile = PreferenceManager
-					.getDefaultSharedPreferences(context);
+            if (preferences != null)
+			    SecurePreferences.sFile = preferences;
+            else
+                SecurePreferences.sFile = PreferenceManager.getDefaultSharedPreferences(context);
 		}
 		// Initialize encryption/decryption key
 		try {
@@ -131,7 +139,7 @@ public class SecurePreferences implements SharedPreferences {
 		} catch (NoSuchAlgorithmException e) {
 			// older devices may not support the have the implementation try
 			// with a weaker
-			// algorthm
+			// algorithm
 			key = SecurePreferences.generatePBEKey(password, salt,
 					BACKUP_PBE_KEY_ALG, ITERATIONS, KEY_SIZE);
 		}
@@ -143,21 +151,21 @@ public class SecurePreferences implements SharedPreferences {
 	 * 
 	 * @param passphraseOrPin
 	 * @param salt
-	 * @param algorthm
-	 *            - which PBE algorthm to use. some <4.0 devices don;t support
-	 *            the prefered PBKDF2WithHmacSHA1
+	 * @param algorithm
+	 *            - which PBE algorithm to use. some <4.0 devices don;t support
+	 *            the preferred PBKDF2WithHmacSHA1
 	 * @param iterations
 	 *            - Number of PBKDF2 hardening rounds to use. Larger values
 	 *            increase computation time (a good thing), defaults to 1000 if
 	 *            not set.
 	 * @param keyLength
-	 * @return Derived Secretkey
+	 * @return Derived SecretKey
 	 * @throws NoSuchAlgorithmException
 	 * @throws InvalidKeySpecException
 	 * @throws NoSuchProviderException
 	 */
 	private static SecretKey generatePBEKey(char[] passphraseOrPin,
-			byte[] salt, String algorthm, int iterations, int keyLength)
+			byte[] salt, String algorithm, int iterations, int keyLength)
 			throws NoSuchAlgorithmException, InvalidKeySpecException,
 			NoSuchProviderException {
 
@@ -166,11 +174,10 @@ public class SecurePreferences implements SharedPreferences {
 		}
 
 		SecretKeyFactory secretKeyFactory = SecretKeyFactory.getInstance(
-				algorthm, PROVIDER);
+				algorithm, PROVIDER);
 		KeySpec keySpec = new PBEKeySpec(passphraseOrPin, salt, iterations,
 				keyLength);
-		SecretKey secretKey = secretKeyFactory.generateSecret(keySpec);
-		return secretKey;
+        return secretKeyFactory.generateSecret(keySpec);
 	}
 
 	/**
@@ -381,7 +388,8 @@ public class SecurePreferences implements SharedPreferences {
 	 * original {@link SecurePreferences} until you call {@link #commit()} or
 	 * {@link #apply()}.
 	 */
-	public static class Editor implements SharedPreferences.Editor {
+	@SuppressWarnings("JavaDoc")
+    public static class Editor implements SharedPreferences.Editor {
 		private SharedPreferences.Editor mEditor;
 
 		/**
@@ -484,7 +492,8 @@ public class SecurePreferences implements SharedPreferences {
 		}
 	}
 
-	public static boolean isLoggingEnabled() {
+	@SuppressWarnings("UnusedDeclaration")
+    public static boolean isLoggingEnabled() {
 		return sLoggingEnabled;
 	}
 
